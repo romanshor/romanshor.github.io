@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DrillPyze.dynamics &mdash; DrillPyze 0.1 alpha documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            DrillPyze
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">DrillPyze</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">DrillPyze</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">DrillPyze.dynamics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for DrillPyze.dynamics</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">DrillPyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">drawnow</span> <span class="kn">import</span> <span class="n">drawnow</span>
+<span class="kn">from</span> <span class="nn">pathos.multiprocessing</span> <span class="kn">import</span> <span class="n">ThreadingPool</span> <span class="k">as</span> <span class="n">Pool</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">expit</span>
+
+
+<div class="viewcode-block" id="Simulation"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation">[docs]</a><span class="k">class</span> <span class="nc">Simulation</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to maintain simulation state and describe a coupled axial-torsional </span>
+<span class="sd">    drillstring model with a choice of bit-rock interaction models</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">wellbore</span><span class="p">,</span> <span class="n">bha</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new simulation with a bha and a wellbore</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the simulation</span>
+<span class="sd">        wellbore : DrillPyze.well.wellbore</span>
+<span class="sd">            A wellbore object initialized with a well profile.</span>
+<span class="sd">        hba : DrillPyze.drillstring.BHA</span>
+<span class="sd">            A BHA object initialized with a drillstring configuration.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wellbore</span> <span class="o">=</span> <span class="n">wellbore</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bha</span> <span class="o">=</span> <span class="n">bha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dx</span> <span class="o">=</span> <span class="mi">90</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="mf">0.0001</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+<div class="viewcode-block" id="Simulation.initialize_simulation"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.initialize_simulation">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bitdepth</span><span class="p">,</span> <span class="n">simulation_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">update_period</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">bit_constant</span> <span class="o">=</span> <span class="mi">2000</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the simulation with the bit at a certain bitdepth</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        bitdepth : float</span>
+<span class="sd">            Current depth of the bit</span>
+<span class="sd">        simulation_length : int</span>
+<span class="sd">            Length (in seconds) of the simulation.  Used to preallocate arrays.</span>
+<span class="sd">            Default value is 100 seconds.        </span>
+<span class="sd">        params : dict</span>
+<span class="sd">            A dictionary of optional parameters to set up the simulation</span>
+<span class="sd">            Default value is None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Store the bit depth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bitdepth</span> <span class="o">=</span> <span class="n">bitdepth</span>
+        
+
+        <span class="c1"># Discretize the Wellpath and Drillstring</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">discretize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dx</span><span class="p">,</span> <span class="n">bitdepth</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wellbore</span><span class="o">.</span><span class="n">get_interpolated</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+
+
+        <span class="c1"># model parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_c</span> <span class="o">=</span> <span class="mf">0.1</span>                              <span class="c1"># cut-off omega for static friction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span> <span class="o">=</span> <span class="mf">0.45</span>                                <span class="c1"># along-string static friction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu_k</span> <span class="o">=</span> <span class="mf">0.3</span>                                 <span class="c1"># along-string kinematic friction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kt</span> <span class="o">=</span> <span class="mf">3.5</span>                                   <span class="c1"># inertial torsional damping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ks</span> <span class="o">=</span> <span class="mf">0.3</span>                                   <span class="c1"># viscous damping coefficient</span>
+
+        <span class="c1"># Do the static calculations on the drillstring</span>
+        <span class="p">(</span><span class="n">Ft</span><span class="p">,</span> <span class="n">Ft_pu</span><span class="p">,</span> <span class="n">Ft_so</span><span class="p">,</span> <span class="n">Fn</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span> <span class="o">=</span> <span class="n">statics</span><span class="o">.</span><span class="n">normal_forces</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wellbore</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ft</span> <span class="o">=</span> <span class="n">Ft</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Fn</span> <span class="o">=</span> <span class="n">Fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">=</span> <span class="n">M</span>
+
+        <span class="c1"># Initialize storage for simulation variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">),</span><span class="mi">3</span><span class="p">))</span>        <span class="c1"># Torque along the string for t=t, t=t-dt and t=t-2dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">),</span><span class="mi">3</span><span class="p">))</span>      <span class="c1"># RPM along the string for t=t, t=t-dt and t=t-2dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">),</span><span class="mi">1</span><span class="p">))</span>     <span class="c1"># source term along the drillstring</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>        <span class="c1"># Torque along the string for t=t, t=t-dt and t=t-2dt.  Vectorized format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>      <span class="c1"># RPM along the string for t=t, t=t-dt and t=t-2dt.  Vectorized format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>     <span class="c1"># Source term along the drillstring.  Vectorized format</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>            <span class="c1"># Top Drive RPM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>         <span class="c1"># Top Drive RPM Setpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>           <span class="c1"># Bit RPM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>              <span class="c1"># Top Drive Torque</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>             <span class="c1"># Bit Torque</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">simulation_length</span><span class="p">,</span><span class="n">simulation_length</span> <span class="o">/</span> <span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>
+
+        <span class="c1"># Simulation constants</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="mf">490.6</span>                            <span class="c1"># lb/ft^3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="mf">1.671e9</span>                            <span class="c1"># lbf/ft^2</span>
+
+
+        <span class="c1"># TD Control System Parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kp</span> <span class="o">=</span> <span class="mi">6500</span>                             <span class="c1"># p-gain, top drive PI controller</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ki</span> <span class="o">=</span> <span class="mi">2500</span>                              <span class="c1"># i-gain, top drive PI controller</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TD_INERTIA</span> <span class="o">=</span> <span class="mi">750</span>                       <span class="c1"># Top drive inertia</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span> <span class="o">=</span> <span class="mi">60</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>                   <span class="c1"># maximum set point ramp speed (rpm / second)</span>
+
+        <span class="c1"># Initialize controller variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">td_integrated_speed_error</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Simulation control</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>                                        <span class="c1"># current simulation index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxsteps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">simulation_length</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>      <span class="c1"># max number of timesteps in simulation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simlength</span> <span class="o">=</span> <span class="n">simulation_length</span>                  <span class="c1"># max simulation length in seconds</span>
+
+        <span class="c1"># estimation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_estimates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>                <span class="c1"># allocate storage for bit estimation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span> <span class="o">=</span> <span class="n">bit_constant</span>                            <span class="c1"># initial guess</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="mi">25</span>                                  <span class="c1"># observer gain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_period</span> <span class="o">=</span> <span class="n">update_period</span>                  <span class="c1"># update frequency for ensemble updating</span></div>
+
+    
+<div class="viewcode-block" id="Simulation.step"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">TD_RPM_SP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">WOB_SP</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Step the simulation forward by dt seconds</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        dt : int</span>
+<span class="sd">            Number of seconds to advance the simulation</span>
+<span class="sd">        TD_RPM_SP : float</span>
+<span class="sd">            A change in the top drive set point. Default is None, meaning no change in top drive set point</span>
+<span class="sd">        WOB_SP : float</span>
+<span class="sd">            Current WOB setpoint</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check if maximum simulation length has been exceeded.</span>
+        <span class="c1"># TODO: allow simulation to extend time.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxsteps</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Simulation Complete.  Maximum simulation length reached.&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+                
+
+        <span class="c1"># Number of steps to advance the simulation</span>
+        <span class="n">nsteps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+
+
+
+
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nsteps</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">TD_RPM_SP</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">last</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">TD_RPM_SP</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">last</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">last</span> <span class="o">&gt;</span> <span class="n">TD_RPM_SP</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">TD_RPM_SP</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+
+                <span class="c1"># Top Drive</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">omega_td</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">tau_td</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">omega_td</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="n">tau_td</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">omega_td</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">td_integrated_speed_error</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">tau_td</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ki</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_integrated_speed_error</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">omega_td</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+                <span class="c1"># first stand of drillpipe.  No friction</span>
+                <span class="k">elif</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+
+
+                <span class="c1"># Bit</span>
+                <span class="k">elif</span> <span class="n">j</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span>  <span class="mi">2500</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+
+                
+                <span class="c1"># Drillstring</span>
+                <span class="k">else</span><span class="p">:</span>
+
+                    <span class="c1"># compute the source term</span>
+
+                    <span class="c1"># friction component</span>
+                    <span class="n">friction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Fn</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">OD</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">/</span><span class="mi">12</span><span class="o">/</span><span class="mi">2</span>
+
+                    <span class="c1"># inertial damping component</span>
+                    <span class="n">inertia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+                    <span class="c1"># viscous damping component</span>
+                    <span class="n">viscous</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ks</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+                    <span class="c1"># source term</span>
+
+                    
+
+                    <span class="c1"># account for the last component of the BHA</span>
+                    <span class="k">if</span><span class="p">(</span><span class="n">j</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">tau_below</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="n">omega_below</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">tau_below</span> <span class="o">=</span> <span class="mi">0</span>
+                            <span class="n">omega_below</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">else</span><span class="p">:</span>
+
+                        <span class="n">tau_below</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">omega_below</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">omega_below</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_c</span><span class="p">:</span>
+                        <span class="n">source</span> <span class="o">=</span> <span class="p">(</span><span class="n">friction</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_k</span> <span class="o">+</span> <span class="n">inertia</span> <span class="o">+</span> <span class="n">viscous</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dx</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">source</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">source</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">tau_below</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="n">source</span><span class="p">)</span>
+
+                    <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">friction</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span><span class="p">:</span>
+                        <span class="n">source</span> <span class="o">=</span> <span class="p">(</span><span class="n">friction</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_k</span> <span class="o">+</span> <span class="n">inertia</span> <span class="o">+</span> <span class="n">viscous</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dx</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">source</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">source</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">tau_below</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="n">source</span><span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxsteps</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Simulation Complete.  Maximum simulation length reached.&#39;</span><span class="p">)</span>
+                <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="Simulation.step_vectorized"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.step_vectorized">[docs]</a>    <span class="k">def</span> <span class="nf">step_vectorized</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">TD_RPM_SP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">WOB_SP</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Step the simulation forward by dt seconds.  Computations are vectorized in x</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        dt : int</span>
+<span class="sd">            Number of seconds to advance the simulation</span>
+<span class="sd">        TD_RPM_SP : float</span>
+<span class="sd">            A change in the top drive set point. Default is None, meaning no change in top drive set point</span>
+<span class="sd">        WOB_SP : float</span>
+<span class="sd">            Current WOB setpoint</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="c1"># Check if maximum simulation length has been exceeded.</span>
+        <span class="c1"># TODO: allow simulation to extend time.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxsteps</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Simulation Complete.  Maximum simulation length reached.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> 
+
+        <span class="c1"># Number of steps to advance the simulation</span>
+        <span class="n">nsteps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+
+        <span class="c1"># To remove high frequency noise from the simulation (to allow for a longer dt and larger dx), </span>
+        <span class="c1"># omega nd tau are convolved with the kernel below to remove 40% of energy</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])</span>
+
+        <span class="c1"># Loop through time</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nsteps</span><span class="p">):</span>
+
+            <span class="c1"># advance tau and omega</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:,:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:,:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:]</span>
+
+            <span class="c1"># Compute the new setpoint rpm</span>
+            <span class="k">if</span> <span class="n">TD_RPM_SP</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+
+                <span class="c1"># if first iteration of simulation, last rpm setpoint is 0</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">last</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="c1"># increase or decrease the set point at the maximum &#39;ramp&#39;</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">TD_RPM_SP</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">last</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">last</span> <span class="o">&gt;</span> <span class="n">TD_RPM_SP</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ramp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">TD_RPM_SP</span><span class="o">/</span><span class="mi">60</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+           
+            <span class="c1"># keep the last set point</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+            <span class="c1">#</span>
+            <span class="c1"># TOP DRIVE</span>
+            <span class="c1">#</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">omega_td</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">tau_td</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">omega_td</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tau_td</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="c1"># Calculate speed error and integrated speed error</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td_sp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">omega_td</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">td_integrated_speed_error</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+
+            <span class="c1"># Calculate the new omega and tau of the top drive, assuming a simple PI controller and a motor inertia</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">tau_td</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_speed_error</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ki</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_integrated_speed_error</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">omega_td</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">TD_INERTIA</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+
+
+            <span class="c1"># </span>
+            <span class="c1"># BIT</span>
+            <span class="c1">#</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+
+            <span class="c1"># set up the first and last elements of the drillstring arrays for vectorized computation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">TD_INERTIA</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">omega_td</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+            
+
+                
+            <span class="c1">#</span>
+            <span class="c1"># DRILLSTRING</span>
+            <span class="c1">#</span>
+
+            <span class="c1"># compute the source term for each drillstring element.  The source term consists of:</span>
+            <span class="c1">#   Inertial damping</span>
+            <span class="c1">#   Viscous damping</span>
+            <span class="c1">#   Coulomb friction</span>
+
+            <span class="c1"># friction component</span>
+            <span class="n">friction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Fn</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">OD</span><span class="o">/</span><span class="mi">12</span><span class="o">/</span><span class="mi">2</span>
+
+            <span class="c1"># inertial damping component</span>
+            <span class="n">inertia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+            <span class="c1"># viscous damping component</span>
+            <span class="n">viscous</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ks</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># total source term</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="p">(</span><span class="n">friction</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_k</span> <span class="o">+</span> <span class="n">inertia</span> <span class="o">+</span> <span class="n">viscous</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dx</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># torque at each drillstring element</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">2</span><span class="p">:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># rpm at each drillstring element</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">J</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">2</span><span class="p">:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bha</span><span class="o">.</span><span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
+
+            <span class="c1"># rpm is zero if frictional torque is not exceeded            </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">friction</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_k</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_c</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># end the simulation at max time</span>
+            <span class="c1"># TODO: allow extension of simulation time</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxsteps</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Simulation Complete.  Maximum simulation length reached.&#39;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="c1"># save variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Remove 40% of the energy in the system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span><span class="p">[:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span><span class="p">[:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Simulation.initialize_estimator"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.initialize_estimator">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_estimator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_size</span><span class="p">,</span> <span class="n">intensity</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the estimator.  </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        array_size : int</span>
+<span class="sd">            Length to preallocate for estimation</span>
+
+<span class="sd">        intensity : float</span>
+<span class="sd">            Intensity of update</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_estimates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">array_size</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_estimates</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span> <span class="o">=</span> <span class="n">intensity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t0</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="Simulation.update_estimate"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.update_estimate">[docs]</a>    <span class="k">def</span> <span class="nf">update_estimate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_act</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the parameter estimates based on the actual value of surface torque</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        tau_act : Float</span>
+<span class="sd">            the actual surface torque</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator_idx</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bit_estimates</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">tau_act</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1">#self.bit_constant += self.gain * err * self.dt * np.random.random_sample()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_estimates</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator_idx</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span> <span class="o">*</span> <span class="n">expit</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">t0</span> <span class="o">-</span> <span class="mi">6</span><span class="p">)</span><span class="o">/</span> <span class="mi">12</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tau_act</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Simulation.clone_estimator"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.clone_estimator">[docs]</a>    <span class="k">def</span> <span class="nf">clone_estimator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For ensemble based estimation, clone self to match best estimator</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        source : DrillPyze.Simulation</span>
+<span class="sd">            the best estimator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">bit_constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bit_constant0</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">bit_constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">tau_v</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">omega_v</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">tau_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">tau_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">omega_td</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">omega_bit</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+    <span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comp</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Redefining the less than method to allow for sorting.  One simulation is less than</span>
+<span class="sd">        another simulation iff estimation error over a specified timeframe is smaller.  The</span>
+<span class="sd">        timeframe is defined when the simulations are initialized.</span>
+
+<span class="sd">        This method does not check for consistency.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        comp : DrillPyze.Simulation</span>
+<span class="sd">            the simulation to compare against</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">&lt;</span> <span class="n">comp</span><span class="o">.</span><span class="n">error</span>
+    
+<div class="viewcode-block" id="Simulation.parstep"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Simulation.parstep">[docs]</a>    <span class="k">def</span> <span class="nf">parstep</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function for multiprocessing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step_vectorized</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span></div></div>
+    
+
+
+<div class="viewcode-block" id="Estimator"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Estimator">[docs]</a><span class="k">class</span> <span class="nc">Estimator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to maintain and update an ensemble based estimation technique</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_instances</span><span class="p">,</span> <span class="n">wellbore</span><span class="p">,</span> <span class="n">bha</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize an pool of workers (only a ThreadingPool works currently)</span>
+<span class="sd">        to create a series of potential estimates</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        num_instances : int</span>
+<span class="sd">            Number of instances or workers for the ensemble.  Assumes that the</span>
+<span class="sd">            number of workers and the number of estimates is equal</span>
+<span class="sd">        wellbore : DrillPyze.well.wellbore</span>
+<span class="sd">            Wellbore for the simulation</span>
+<span class="sd">        bha : DrillPyze.drillstring.BHA</span>
+<span class="sd">            BHA to be used for the simulation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="c1"># Create an array of simulations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_instances</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span> <span class="o">=</span> <span class="n">num_instances</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_instances</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">wellbore</span><span class="p">,</span> <span class="n">bha</span><span class="p">)</span>
+
+        <span class="c1"># Create a multiprocessing pool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="n">nodes</span><span class="o">=</span><span class="n">num_instances</span><span class="p">)</span>           <span class="c1"># set up the multiprocessing pool to increment the simulations</span>
+
+
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ensure the processing pool is closed when the Estimator exits</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Estimator.initialize"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Estimator.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bit_depth</span><span class="p">,</span> <span class="n">sim_length</span><span class="p">,</span> <span class="n">estimate_freq</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the simulations to the same start point</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        bit_depth : float</span>
+<span class="sd">            Current bit depth</span>
+<span class="sd">        sim_length : int</span>
+<span class="sd">            Number of seconds to simulate</span>
+<span class="sd">        estimate_freq : float</span>
+<span class="sd">            Frequency (in Hz) of available data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span><span class="p">):</span>
+            <span class="c1"># self.simulations[i].initialize_simulation(bit_depth, sim_length, bit_constant=((i+1)/3*1000))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">initialize_simulation</span><span class="p">(</span><span class="n">bit_depth</span><span class="p">,</span> <span class="n">sim_length</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">initialize_estimator</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sim_length</span><span class="o">/</span><span class="n">estimate_freq</span><span class="p">),</span> <span class="p">((</span><span class="n">i</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span><span class="p">)</span><span class="o">*</span><span class="mi">500</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Estimator.increment"><a class="viewcode-back" href="../../DrillPyze.html#DrillPyze.dynamics.Estimator.increment">[docs]</a>    <span class="k">def</span> <span class="nf">increment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">TD_SETPOINT</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">TD_ACT</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Increment the simulations with a certain topdrive rpm and recorded top</span>
+<span class="sd">        drive torque.  The simulations simulate forward at the topdrive rpm</span>
+<span class="sd">        and then update their estimation assuming the topdrive torque is measured</span>
+<span class="sd">        at the end of the simulation increment.</span>
+
+<span class="sd">        The simulation pool is then sorted by smallest error and all simulations</span>
+<span class="sd">        are cloned to be equal to the best simulation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ==========</span>
+<span class="sd">        time : float</span>
+<span class="sd">            Number of seconds to step the simulations forward</span>
+<span class="sd">        TD_SETPOINT : float</span>
+<span class="sd">            Top drive rpm setpoint.  Default is 0</span>
+<span class="sd">        TD_ACT : float</span>
+<span class="sd">            Top drive actual torque.  Default is 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Activate the pool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">restart</span><span class="p">()</span>
+
+        <span class="c1"># Create the argument tuples for each simulation</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">time</span><span class="p">,</span> <span class="n">TD_SETPOINT</span><span class="p">)]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span>
+
+        <span class="c1"># Map the simulations and arguments to the workers and start the pool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">Simulation</span><span class="o">.</span><span class="n">parstep</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># wait for the pool to finish</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+        <span class="c1"># update the estimates for each worker</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">update_estimate</span><span class="p">(</span><span class="n">TD_ACT</span><span class="p">)</span>
+
+        <span class="c1"># Sort the simulations based on lowest error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+        <span class="c1"># Clone the best estimate</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">clone_estimator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">simulations</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div></div>
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Roman J. Shor.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
