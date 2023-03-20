@@ -1,1 +1,4 @@
-include: ["DrillPyze/_static", "DrillPyze/_sources", "DrillPyze/_modules"]
+include: 
+  - DrillPyze/_static
+  - DrillPyze/_sources
+  - DrillPyze/_modules
