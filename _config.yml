@@ -1,15 +1,1 @@
-title: Roman's Github Page
-email: roman [dot] shor [at] ucalgary [dot] ca
-description: >- # this means to ignore newlines until "baseurl:"
-  Roman is an Associate Professor at the University of Calgary.  
-  This is a basic landing page for my github content.
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "romanshor.gihub.io" # the base hostname & protocol for your site, e.g. http://example.com
-github_username:  romanshor
-
-
-include: 
-  - ./DrillPyze/_static/
-  - ./DrillPyze/_modules/
-  - ./DrillPyze/_sources/
-  - ./DrillPyze/*
+include: ["DrillPyze/_static", "DrillPyze/_sources", "DrillPyze/_modules"]
