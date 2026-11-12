@@ -251,50 +251,66 @@ section li + li {
     color: var(--text-muted);
 }
 
-/* ---------- Cards ---------- */
-.cards {
+/* ---------- Highlights ---------- */
+.hl-grid {
     list-style: none;
     padding: 0;
-    margin: 1.25rem 0 1.75rem;
+    margin: 0.5rem 0 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1.25rem;
     max-width: none !important;
 }
 
-.cards li + li {
+.hl-grid li + li {
     margin-top: 0;
 }
 
-.card {
+.hl-card {
     position: relative;               /* for the stretched link */
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    padding: 1rem 1.15rem 1.1rem;
+    gap: 0.5rem;
+    padding: 1.4rem 1.4rem 1.25rem;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-left: 4px solid var(--maroon);
-    border-radius: 6px;
-    transition: background-color 0.15s, border-color 0.15s;
+    border-top: 4px solid var(--maroon);
+    border-radius: 8px;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
-.card:hover {
+.hl-card:hover {
     background: var(--surface-2-hover);
-    border-left-color: var(--link);
+    border-top-color: var(--link);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
-.card:focus-within {
+.hl-card:focus-within {
     outline: 3px solid var(--focus);
-    outline-offset: 2px;
+    outline-offset: 3px;
 }
 
-.card p {
+.hl-card p {
     margin: 0;
 }
 
-.card-tag {
-    order: -1;
+.hl-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
+    margin-bottom: 0.35rem;
+    border-radius: 50%;
+    background: var(--maroon);
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hl-tag {
+    order: 0;
     font-size: 0.78rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -302,35 +318,50 @@ section li + li {
     color: var(--tag);
 }
 
-.card-title {
+.hl-title {
     margin: 0;
-    font-size: 1.15rem;
+    font-size: 1.25rem;
 }
 
-.card-title a {
+.hl-title a {
     color: var(--text);
     text-decoration: none;
 }
 
-.card-title a::after {               /* whole card is clickable */
+.hl-title a::after {                 /* whole box is clickable */
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
-.card-title a:focus-visible {
-    outline: none;                    /* the card shows focus instead */
+.hl-title a:focus-visible {
+    outline: none;                    /* the box shows focus instead */
 }
 
-.card:hover .card-title a {
-    color: var(--link);
-    text-decoration: underline;
-}
-
-.card-desc {
+.hl-desc {
     font-size: 0.95rem;
     color: var(--text-muted);
+}
+
+.hl-action {
+    margin-top: auto !important;      /* pin to the bottom of the box */
+    padding-top: 0.75rem;
+    font-weight: 600;
+    color: var(--link);
+}
+
+.hl-arrow {
+    display: inline-block;
+    transition: transform 0.15s;
+}
+
+.hl-card:hover .hl-title a {
+    color: var(--link);
+}
+
+.hl-card:hover .hl-arrow {
+    transform: translateX(4px);
 }
 
 /* ---------- Footer ---------- */
@@ -359,8 +390,8 @@ section li + li {
 
     .site-nav a {
         white-space: nowrap;
-        padding: 0.4rem 0.55rem;
-        font-size: 0.95rem;
+        padding: 0.4rem 0.45rem;
+        font-size: 0.92rem;
     }
 
     .intro {
@@ -376,16 +407,40 @@ section li + li {
     }
 }
 
+/* Very narrow screens: the menu wraps to three rows, so let it scroll away */
+@media (max-width: 374px) {
+    .site-header {
+        position: static;
+    }
+
+    section {
+        scroll-margin-top: 1rem;
+    }
+}
+
 /* ---------- Motion / contrast preferences ---------- */
 @media (prefers-reduced-motion: reduce) {
-    .card {
+    .hl-card,
+    .hl-arrow {
         transition: none;
+    }
+
+    .hl-card:hover {
+        transform: none;
+    }
+
+    .hl-card:hover .hl-arrow {
+        transform: none;
     }
 }
 
 @media (forced-colors: active) {
-    .card {
+    .hl-card {
         border: 1px solid CanvasText;
+    }
+
+    .hl-icon {
+        stroke: CanvasText;
     }
 
     .site-nav a[aria-current="true"] {
@@ -402,7 +457,7 @@ section li + li {
 
     body,
     section,
-    .card {
+    .hl-card {
         background: #fff;
         color: #000;
     }

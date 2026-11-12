@@ -14,6 +14,7 @@
     <header class="site-header">
         <nav class="site-nav" aria-label="Sections">
             <ul>
+                <li><a href="#highlights">Highlights</a></li>
                 <li><a href="#about">About</a></li>
                 <li><a href="#research">Research</a></li>
                 <li><a href="#group">Group</a></li>
@@ -34,6 +35,33 @@
                 Texas A&amp;M University
             </p>
         </div>
+
+        <section id="highlights" class="highlights" aria-labelledby="highlights-heading">
+            <h2 id="highlights-heading">Highlights</h2>
+            <ul class="hl-grid" role="list">
+                <li class="hl-card">
+                    <svg class="hl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
+                    <p class="hl-tag">Open textbook</p>
+                    <h3 class="hl-title"><a href="https://romanshor.github.io/Introduction-to-Drilling-Engineering/main/chapters/intro.html">Introduction to Drilling Engineering</a></h3>
+                    <p class="hl-desc">A free online textbook for undergraduate and graduate students, from rig systems, drilling fluids and well control through directional drilling, wellbore stability, casing and cementing, to managed pressure and geothermal drilling.</p>
+                    <p class="hl-action" aria-hidden="true">Read the book <span class="hl-arrow">&rarr;</span></p>
+                </li>
+                <li class="hl-card">
+                    <svg class="hl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M5 14l3.5-4 3 2.5L15 8l4 4"/><path d="M8 22h8M12 18v4"/></svg>
+                    <p class="hl-tag">Try it in your browser</p>
+                    <h3 class="hl-title"><a href="https://romanshor.github.io/DrillPyze/lite/">DrillPyze Lite drilling simulator</a></h3>
+                    <p class="hl-desc">A real-time drillstring dynamics simulator that runs entirely in a web browser, with no install. Drill an example well and watch surface measurements alongside model-based downhole estimates.</p>
+                    <p class="hl-action" aria-hidden="true">Launch the simulator <span class="hl-arrow">&rarr;</span></p>
+                </li>
+                <li class="hl-card">
+                    <svg class="hl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
+                    <p class="hl-tag">Coming soon</p>
+                    <h3 class="hl-title"><a href="https://romanshor.github.io/DrillPyze/coupled-model/index.html">DrillPyze Python library</a></h3>
+                    <p class="hl-desc">An open source Python library for coupled axial&ndash;torsional drillstring dynamics, with bit models, top-drive controllers, hydraulics and wellbore temperature. The documentation covers the model derivations, physics specification and API reference.</p>
+                    <p class="hl-action" aria-hidden="true">Read the documentation <span class="hl-arrow">&rarr;</span></p>
+                </li>
+            </ul>
+        </section>
 
         <section id="about" aria-labelledby="about-heading">
             <h2 id="about-heading">About</h2>
@@ -119,20 +147,7 @@
 
         <section id="opensource" aria-labelledby="opensource-heading">
             <h2 id="opensource-heading">Open Source Projects</h2>
-            <p>Dr. Shor leads the <a href="https://opensourcedrilling.org/">Open Source Drilling Community</a>, part of the SPE Drilling Systems Automation Technical Section (DSATS), which seeks to accelerate drillstring dynamics model development through open source collaboration. As part of this, his team is developing <strong>DrillPyze</strong>, an open source Python library for simulating coupled axial&ndash;torsional drillstring dynamics in real time, including bit models, top-drive controllers, hydraulics and wellbore temperature.</p>
-
-            <ul class="cards" role="list">
-                <li class="card">
-                    <p class="card-tag">Try it in your browser</p>
-                    <h3 class="card-title"><a href="https://romanshor.github.io/DrillPyze/lite/">DrillPyze Lite simulator</a></h3>
-                    <p class="card-desc">The DrillPyze model running entirely in a web browser, with no install. Drill an example well and watch surface measurements alongside model-based downhole estimates.</p>
-                </li>
-                <li class="card">
-                    <p class="card-tag">Documentation</p>
-                    <h3 class="card-title"><a href="https://romanshor.github.io/DrillPyze/coupled-model/index.html">DrillPyze documentation</a></h3>
-                    <p class="card-desc">Model derivations, the physics specification and the Python API reference for the coupled drillstring model.</p>
-                </li>
-            </ul>
+            <p>Dr. Shor leads the <a href="https://opensourcedrilling.org/">Open Source Drilling Community</a>, part of the SPE Drilling Systems Automation Technical Section (DSATS), which seeks to accelerate drillstring dynamics model development through open source collaboration. As part of this, his team is developing <strong>DrillPyze</strong>, an open source Python library for simulating coupled axial&ndash;torsional drillstring dynamics in real time, including bit models, top-drive controllers, hydraulics and wellbore temperature. You can try the model in the <a href="https://romanshor.github.io/DrillPyze/lite/">DrillPyze Lite simulator</a> or read the <a href="https://romanshor.github.io/DrillPyze/coupled-model/index.html">DrillPyze documentation</a>.</p>
 
             <h3>Recent publications for the Open Source Drilling Community</h3>
             <ul class="refs">
@@ -146,13 +161,7 @@
         <section id="courses" aria-labelledby="courses-heading">
             <h2 id="courses-heading">Teaching</h2>
 
-            <ul class="cards" role="list">
-                <li class="card">
-                    <p class="card-tag">Open textbook</p>
-                    <h3 class="card-title"><a href="https://romanshor.github.io/Introduction-to-Drilling-Engineering/main/chapters/intro.html">Introduction to Drilling Engineering</a></h3>
-                    <p class="card-desc">A free online textbook for undergraduate and graduate students, from rig systems, drilling fluids and well control through directional drilling, wellbore stability, casing and cementing, to managed pressure and geothermal drilling.</p>
-                </li>
-            </ul>
+            <p>His open textbook, <a href="https://romanshor.github.io/Introduction-to-Drilling-Engineering/main/chapters/intro.html"><cite>Introduction to Drilling Engineering</cite></a>, is freely available online.</p>
 
             <h3>Current Courses at Texas A&amp;M University</h3>
             <ul class="courses">
