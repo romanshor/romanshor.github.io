@@ -76,3 +76,51 @@ footer {
         margin-bottom: 10px;
     }
 }
+
+.resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 16px 0 24px;
+}
+
+.resource-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 18px;
+    background: #2a2a2a;
+    border-left: 4px solid #500000;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #f6f6f6;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.resource-card:hover {
+    background: #333;
+    border-left-color: #db3001;
+    text-decoration: none;
+    color: #f6f6f6;
+}
+
+.resource-tag {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #c9a3a3;
+}
+
+.resource-title {
+    font-size: 1.15em;
+    font-weight: bold;
+}
+
+.resource-card:hover .resource-title {
+    color: #db3001;
+}
+
+.resource-desc {
+    font-size: 0.92em;
+    color: #cfcfcf;
+}
