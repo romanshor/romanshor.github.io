@@ -1,126 +1,382 @@
-body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 0;
-    color: white;
-    background: #141414;
-    padding-top: 120px; /* Adjust this value based on the actual height of your fixed header */
+/* ---------- Tokens ---------- */
+:root {
+    --maroon: #500000;        /* Texas A&M maroon */
+    --bg: #141414;
+    --surface: #1f1f1f;
+    --surface-2: #2a2a2a;
+    --surface-2-hover: #333333;
+    --text: #f2f2f2;
+    --text-muted: #c4c4c4;
+    --link: #ffb4a3;          /* light coral: 10:1 on surface */
+    --link-hover: #ffffff;
+    --tag: #e3b9b9;
+    --focus: #ffcf4d;
+    --border: #3a3a3a;
+    --header-h: 3.25rem;
+    --measure: 72ch;
+    color-scheme: dark;
 }
 
-.header-fixed {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background: #500000;
-    z-index: 1000;
-    box-shadow: 0 2px 5px rgba(255, 255, 255, 0.2);
+/* ---------- Base ---------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
-header, nav {
-    margin: 0 auto;
-    padding: 10px 20px; /* Reduced padding */
-    color:#f6f6f6;
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    text-align: center;
-}
-
-nav ul li {
-    display: inline;
-    margin-right: 10px;
-}
-
-nav ul li a {
-    text-decoration: none;
-    color: #f6f6f6;
-}
-
-nav a:hover, .active {
-    text-decoration: underline;
-    font-weight: bold;
-}
-
-a {
-    color: white;
-}
-
-a:hover, .active{
-    text-decoration: underline;
-    color: #db3001;
-}
-
-main {
-    margin: 20px;
-    background: #202020;
-    border-radius: 8px;
-    padding: 20px;
-    color: #f6f6f6;
-}
-
-footer {
-    text-align: center;
-    font-size: 0.8em;
-    margin-top: 20px;
-    padding: 10px;
-    background: black;
-}
-
-@media (max-width: 600px) {
-    nav ul li {
-        display: block;
-        margin-bottom: 10px;
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
     }
 }
 
-.resource-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-    margin: 16px 0 24px;
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--bg);
 }
 
-.resource-card {
+h1, h2, h3 {
+    line-height: 1.25;
+    margin: 0;
+}
+
+h2 {
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--maroon);
+}
+
+h3 {
+    font-size: 1.15rem;
+    margin: 1.75rem 0 0.6rem;
+}
+
+p {
+    margin: 0 0 1rem;
+}
+
+cite {
+    font-style: italic;
+}
+
+a {
+    color: var(--link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+}
+
+a:hover {
+    color: var(--link-hover);
+    text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* ---------- Skip link ---------- */
+.skip-link {
+    position: absolute;
+    left: 0.75rem;
+    top: -4rem;
+    z-index: 2000;
+    padding: 0.5rem 1rem;
+    background: var(--focus);
+    color: #000;
+    font-weight: 600;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    top: 0.75rem;
+}
+
+/* ---------- Header / navigation ---------- */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--maroon);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.site-nav ul {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0.4rem 1rem;
+    max-width: 64rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.15rem 0.35rem;
+}
+
+.site-nav a {
+    display: block;
+    padding: 0.45rem 0.75rem;
+    min-height: 44px;           /* comfortable touch target */
+    line-height: 1.6;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 4px;
+    border-bottom: 2px solid transparent;
+}
+
+.site-nav a:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.site-nav a[aria-current="true"] {
+    font-weight: 600;
+    border-bottom-color: #ffffff;
+    border-radius: 4px 4px 0 0;
+}
+
+.site-nav a:focus-visible {
+    outline-color: #ffffff;
+}
+
+/* ---------- Intro ---------- */
+.intro {
+    padding: 2.5rem 0.25rem 1.5rem;
+}
+
+.intro h1 {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    margin-bottom: 0.4rem;
+}
+
+.intro-role {
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
+}
+
+.intro-affiliation {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* ---------- Main layout ---------- */
+main {
+    max-width: 64rem;
+    margin: 0 auto 2rem;
+    padding: 0 1.25rem;
+}
+
+main:focus {
+    outline: none;
+}
+
+section {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 1.75rem clamp(1.1rem, 3vw, 2.25rem);
+    margin-bottom: 1.5rem;
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+
+section > p,
+section > ul {
+    max-width: var(--measure);
+}
+
+/* ---------- Lists ---------- */
+ul {
+    margin: 0 0 1rem;
+    padding-left: 1.4rem;
+}
+
+section li + li {
+    margin-top: 0.55rem;
+}
+
+.refs li,
+.projects li {
+    padding-left: 0.2rem;
+}
+
+.courses .course-code {
+    font-weight: 600;
+    margin-right: 0.35rem;
+}
+
+.courses .course-meta {
+    color: var(--text-muted);
+}
+
+/* ---------- Cards ---------- */
+.cards {
+    list-style: none;
+    padding: 0;
+    margin: 1.25rem 0 1.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+    max-width: none !important;
+}
+
+.cards li + li {
+    margin-top: 0;
+}
+
+.card {
+    position: relative;               /* for the stretched link */
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 16px 18px;
-    background: #2a2a2a;
-    border-left: 4px solid #500000;
+    gap: 0.35rem;
+    padding: 1rem 1.15rem 1.1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--maroon);
     border-radius: 6px;
-    text-decoration: none;
-    color: #f6f6f6;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
-.resource-card:hover {
-    background: #333;
-    border-left-color: #db3001;
-    text-decoration: none;
-    color: #f6f6f6;
+.card:hover {
+    background: var(--surface-2-hover);
+    border-left-color: var(--link);
 }
 
-.resource-tag {
-    font-size: 0.75em;
+.card:focus-within {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.card p {
+    margin: 0;
+}
+
+.card-tag {
+    order: -1;
+    font-size: 0.78rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #c9a3a3;
+    color: var(--tag);
 }
 
-.resource-title {
-    font-size: 1.15em;
-    font-weight: bold;
+.card-title {
+    margin: 0;
+    font-size: 1.15rem;
 }
 
-.resource-card:hover .resource-title {
-    color: #db3001;
+.card-title a {
+    color: var(--text);
+    text-decoration: none;
 }
 
-.resource-desc {
-    font-size: 0.92em;
-    color: #cfcfcf;
+.card-title a::after {               /* whole card is clickable */
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+}
+
+.card-title a:focus-visible {
+    outline: none;                    /* the card shows focus instead */
+}
+
+.card:hover .card-title a {
+    color: var(--link);
+    text-decoration: underline;
+}
+
+.card-desc {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    padding: 1.25rem 1rem 2rem;
+    background: #000;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 600px) {
+    body {
+        font-size: 1rem;
+    }
+
+    .site-nav ul {
+        padding: 0.25rem 0.5rem;
+        gap: 0 0.1rem;
+    }
+
+    .site-nav a {
+        white-space: nowrap;
+        padding: 0.4rem 0.55rem;
+        font-size: 0.95rem;
+    }
+
+    .intro {
+        padding-top: 1.75rem;
+    }
+
+    main {
+        padding: 0 0.75rem;
+    }
+
+    h2 {
+        font-size: 1.4rem;
+    }
+}
+
+/* ---------- Motion / contrast preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .card {
+        border: 1px solid CanvasText;
+    }
+
+    .site-nav a[aria-current="true"] {
+        text-decoration: underline;
+    }
+}
+
+/* ---------- Print ---------- */
+@media print {
+    .site-header,
+    .skip-link {
+        display: none;
+    }
+
+    body,
+    section,
+    .card {
+        background: #fff;
+        color: #000;
+    }
+
+    a {
+        color: #000;
+    }
 }
