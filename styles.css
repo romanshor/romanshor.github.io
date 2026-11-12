@@ -220,6 +220,10 @@ section li + li {
     color: var(--text-muted);
 }
 
+.items .meta {
+    color: var(--text-muted);
+}
+
 /* ---------- Cards ---------- */
 .cards {
     list-style: none;
