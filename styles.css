@@ -344,6 +344,21 @@ section li + li {
     color: var(--text-muted);
 }
 
+.hl-links {
+    position: relative;               /* sits above the stretched box link */
+    z-index: 1;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.hl-links a {
+    color: var(--link);
+}
+
+.hl-links a:hover {
+    color: var(--link-hover);
+}
+
 .hl-action {
     margin-top: auto !important;      /* pin to the bottom of the box */
     padding-top: 0.75rem;
