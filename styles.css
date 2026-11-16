@@ -359,6 +359,20 @@ section li + li {
     color: var(--link-hover);
 }
 
+.hl-doi {
+    line-height: 0;
+}
+
+.hl-doi a {
+    display: inline-block;
+}
+
+.hl-doi img {
+    display: block;
+    height: 20px;
+    width: auto;
+}
+
 .hl-action {
     margin-top: auto !important;      /* pin to the bottom of the box */
     padding-top: 0.75rem;
