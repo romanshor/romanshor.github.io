@@ -13,7 +13,6 @@
     --focus: #ffcf4d;
     --border: #3a3a3a;
     --header-h: 3.25rem;
-    --measure: 72ch;
     color-scheme: dark;
 }
 
@@ -189,11 +188,6 @@ section {
     padding: 1.75rem clamp(1.1rem, 3vw, 2.25rem);
     margin-bottom: 1.5rem;
     scroll-margin-top: calc(var(--header-h) + 1rem);
-}
-
-section > p,
-section > ul {
-    max-width: var(--measure);
 }
 
 /* ---------- Lists ---------- */
